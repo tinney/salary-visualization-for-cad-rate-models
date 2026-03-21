@@ -1,0 +1,48 @@
+/* Base Salary Input styles */
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.control-group label {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.salary-input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.salary-text-input {
+  width: 140px;
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-family: inherit;
+  text-align: right;
+  transition: border-color 0.15s;
+}
+
+.salary-text-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.salary-slider {
+  flex: 1;
+  min-width: 120px;
+  height: 6px;
+  accent-color: #3b82f6;
+  cursor: pointer;
+}
+
+.control-hint {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
