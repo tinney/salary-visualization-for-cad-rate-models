@@ -16,9 +16,17 @@ interface SummaryStatisticsProps {
 const fmt = (n: number) =>
   n.toLocaleString("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 });
 
+const fmtUSD = (n: number) =>
+  n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+
 const fmtDiff = (n: number) => {
   const prefix = n >= 0 ? "+" : "";
   return prefix + fmt(n);
+};
+
+const fmtPct = (n: number) => {
+  const prefix = n >= 0 ? "+" : "";
+  return `${prefix}${n.toFixed(2)}%`;
 };
 
 export default function SummaryStatistics({
@@ -41,15 +49,30 @@ export default function SummaryStatistics({
   const comparisons = [
     {
       label: "Anniversary Lock vs Rolling Average",
-      value: summary.diffAnniversaryVsRolling,
+      modelA: "Anniversary Lock",
+      modelB: "Rolling Average",
+      colorA: "#2563eb",
+      colorB: "#16a34a",
+      diff: summary.diffAnniversaryVsRolling,
+      pct: summary.diffAnniversaryVsRollingPct,
     },
     {
       label: "Anniversary Lock vs Current Rate",
-      value: summary.diffAnniversaryVsCurrent,
+      modelA: "Anniversary Lock",
+      modelB: "Current Rate",
+      colorA: "#2563eb",
+      colorB: "#dc2626",
+      diff: summary.diffAnniversaryVsCurrent,
+      pct: summary.diffAnniversaryVsCurrentPct,
     },
     {
       label: "Rolling Average vs Current Rate",
-      value: summary.diffRollingVsCurrent,
+      modelA: "Rolling Average",
+      modelB: "Current Rate",
+      colorA: "#16a34a",
+      colorB: "#dc2626",
+      diff: summary.diffRollingVsCurrent,
+      pct: summary.diffRollingVsCurrentPct,
     },
   ];
 
@@ -69,7 +92,7 @@ export default function SummaryStatistics({
               <div style={cardMeta}>
                 {data.payrollCount} payrolls &middot; Avg rate: {avgRate.toFixed(4)}
               </div>
-              <div style={cardMeta}>Total USD: {data.totalUSD.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })}</div>
+              <div style={cardMeta}>Total USD: {fmtUSD(data.totalUSD)}</div>
             </div>
           );
         })}
@@ -80,20 +103,42 @@ export default function SummaryStatistics({
         Model Differences
       </h3>
       <div style={cardsRow}>
-        {comparisons.map((c) => (
-          <div key={c.label} style={diffCardStyle}>
-            <div style={cardLabel}>{c.label}</div>
-            <div
-              style={{
-                ...cardValue,
-                color: c.value >= 0 ? "#16a34a" : "#dc2626",
-                fontSize: 20,
-              }}
-            >
-              {fmtDiff(c.value)}
+        {comparisons.map((c) => {
+          const positive = c.diff >= 0;
+          const diffColor = positive ? "#16a34a" : "#dc2626";
+          const winnerLabel = positive ? c.modelA : c.modelB;
+          const winnerColor = positive ? c.colorA : c.colorB;
+          return (
+            <div key={c.label} style={diffCardStyle}>
+              <div style={diffCardHeader}>
+                <span style={{ ...modelTag, background: c.colorA + "22", color: c.colorA }}>
+                  {c.modelA}
+                </span>
+                <span style={vsText}>vs</span>
+                <span style={{ ...modelTag, background: c.colorB + "22", color: c.colorB }}>
+                  {c.modelB}
+                </span>
+              </div>
+              <div
+                style={{
+                  ...cardValue,
+                  color: diffColor,
+                  fontSize: 20,
+                  marginTop: 8,
+                }}
+              >
+                {fmtDiff(c.diff)}
+              </div>
+              <div style={{ ...cardMeta, color: diffColor, fontWeight: 600 }}>
+                {fmtPct(c.pct)} relative to {c.modelB}
+              </div>
+              <div style={{ ...cardMeta, marginTop: 6 }}>
+                <span style={{ color: winnerColor, fontWeight: 600 }}>{winnerLabel}</span>
+                {" "}earns more in CAD
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -124,12 +169,34 @@ const cardStyle: React.CSSProperties = {
 };
 
 const diffCardStyle: React.CSSProperties = {
-  flex: "1 1 200px",
+  flex: "1 1 220px",
   padding: 16,
   background: "#f9fafb",
   borderRadius: 8,
   border: "1px solid #e5e7eb",
-  minWidth: 200,
+  minWidth: 220,
+};
+
+const diffCardHeader: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 6,
+  flexWrap: "wrap",
+};
+
+const modelTag: React.CSSProperties = {
+  display: "inline-block",
+  padding: "2px 8px",
+  borderRadius: 12,
+  fontSize: 11,
+  fontWeight: 600,
+  letterSpacing: "0.02em",
+};
+
+const vsText: React.CSSProperties = {
+  fontSize: 11,
+  color: "#999",
+  fontWeight: 500,
 };
 
 const cardLabel: React.CSSProperties = {

@@ -3,13 +3,17 @@
  *
  * Runs all three rate models on a payroll schedule and produces
  * a single array of normalised data points ready for Recharts.
+ *
+ * Cumulative totals are computed via the dedicated `computeAllCumulatives`
+ * utility so the running-total logic is encapsulated and independently tested.
  */
 
-import { generatePayrollSchedule, type PayrollEntry } from "./payroll";
+import { generatePayrollSchedule } from "./payroll";
 import { computeAnniversaryLock } from "../models/anniversaryLock";
 import { computeCurrentRate } from "../models/currentRate";
 import { getRollingAverageRate } from "./rateModels";
 import { toMonthKey, getRateForMonth } from "./rateData";
+import { computeAllCumulatives, type PerPayrollPoint } from "./computeCumulative";
 
 export interface ChartDataPoint {
   /** Payroll date label "YYYY-MM-DD" */
@@ -55,16 +59,16 @@ export function computeChartData(params: ComputeChartDataParams): ChartDataPoint
   // Model 1 – Anniversary Lock
   const model1 = computeAnniversaryLock(payrolls, startDate, averagingWindow);
 
-  // Model 3 – Current Rate (has its own skip logic, but we'll compute inline too)
+  // Model 3 – Current Rate
   const model3 = computeCurrentRate(payrolls);
   const model3Map = new Map(model3.map((r) => [r.date, r]));
 
-  // Build unified data
-  let anniversaryCum = 0;
-  let rollingCum = 0;
-  let currentCum = 0;
+  // --- Step 1: collect per-payroll CAD amounts for all three models ---
 
-  const points: ChartDataPoint[] = [];
+  const anniversaryPoints: PerPayrollPoint[] = [];
+  const rollingPoints: PerPayrollPoint[] = [];
+  const currentPoints: PerPayrollPoint[] = [];
+  const metaRows: Array<{ date: string; payUSD: number; label: string }> = [];
 
   for (let i = 0; i < payrolls.length; i++) {
     const p = payrolls[i];
@@ -86,27 +90,29 @@ export function computeChartData(params: ComputeChartDataParams): ChartDataPoint
     const m3 = model3Map.get(p.date);
     const curCAD = m3 ? m3.payCAD : null;
 
-    // Cumulative
-    if (annivCAD !== null) anniversaryCum += annivCAD;
-    if (rollCAD !== null) rollingCum += rollCAD;
-    if (curCAD !== null) currentCum += curCAD;
+    anniversaryPoints.push({ date: p.date, cad: annivCAD });
+    rollingPoints.push({ date: p.date, cad: rollCAD });
+    currentPoints.push({ date: p.date, cad: curCAD });
 
     // Friendly label
     const d = new Date(p.date + "T00:00:00");
     const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-
-    points.push({
-      date: p.date,
-      label,
-      payUSD: p.payAmountUSD,
-      anniversaryCAD: annivCAD,
-      rollingCAD: rollCAD,
-      currentCAD: curCAD,
-      anniversaryCumCAD: anniversaryCum,
-      rollingCumCAD: rollingCum,
-      currentCumCAD: currentCum,
-    });
+    metaRows.push({ date: p.date, payUSD: p.payAmountUSD, label });
   }
 
-  return points;
+  // --- Step 2: compute cumulative running totals for all three models ---
+  const cumRows = computeAllCumulatives(anniversaryPoints, rollingPoints, currentPoints);
+
+  // --- Step 3: merge per-payroll + cumulative data with display metadata ---
+  return cumRows.map((cum, i) => ({
+    date: metaRows[i].date,
+    label: metaRows[i].label,
+    payUSD: metaRows[i].payUSD,
+    anniversaryCAD: cum.anniversaryCAD,
+    rollingCAD: cum.rollingCAD,
+    currentCAD: cum.currentCAD,
+    anniversaryCumCAD: cum.anniversaryCumCAD,
+    rollingCumCAD: cum.rollingCumCAD,
+    currentCumCAD: cum.currentCumCAD,
+  }));
 }

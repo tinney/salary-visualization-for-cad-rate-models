@@ -35,8 +35,9 @@ interface PeriodRow {
 
 /**
  * Extracts a period key from a date string.
+ * Exported for testing.
  */
-function getPeriodKey(dateStr: string, mode: PeriodMode): { label: string; sortKey: string } {
+export function getPeriodKey(dateStr: string, mode: PeriodMode): { label: string; sortKey: string } {
   const year = dateStr.slice(0, 4);
   if (mode === "yearly") {
     return { label: year, sortKey: year };
@@ -51,8 +52,9 @@ function getPeriodKey(dateStr: string, mode: PeriodMode): { label: string; sortK
 
 /**
  * Aggregate an array of normalized payrolls into period buckets.
+ * Exported for testing.
  */
-function aggregateByPeriod(
+export function aggregateByPeriod(
   payrolls: NormalizedPayroll[],
   mode: PeriodMode
 ): Map<string, { label: string; totalCAD: number; totalUSD: number }> {

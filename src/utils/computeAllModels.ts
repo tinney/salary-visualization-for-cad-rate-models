@@ -7,7 +7,7 @@
 import { PayrollEntry, generatePayrollSchedule } from "./payroll";
 import { computeAnniversaryLock } from "../models/anniversaryLock";
 import { computeCurrentRate } from "../models/currentRate";
-import { getRollingAverageRate } from "./rateModels";
+import { computeRollingAverage } from "../models/rollingAverage";
 import { toMonthKey } from "./rateData";
 
 export interface UnifiedPayroll {
@@ -37,6 +37,10 @@ export interface SummaryStats {
   diffAnniversaryVsRolling: number;
   diffAnniversaryVsCurrent: number;
   diffRollingVsCurrent: number;
+  /** Percentage differences relative to the second model (e.g. 2.3 means +2.3%) */
+  diffAnniversaryVsRollingPct: number;
+  diffAnniversaryVsCurrentPct: number;
+  diffRollingVsCurrentPct: number;
 }
 
 export interface AllModelResults {
@@ -71,6 +75,9 @@ export function computeAllModels(
         diffAnniversaryVsRolling: 0,
         diffAnniversaryVsCurrent: 0,
         diffRollingVsCurrent: 0,
+        diffAnniversaryVsRollingPct: 0,
+        diffAnniversaryVsCurrentPct: 0,
+        diffRollingVsCurrentPct: 0,
       },
     };
   }
@@ -83,14 +90,9 @@ export function computeAllModels(
   const crResults = computeCurrentRate(payrolls);
   const crByDate = new Map(crResults.map((r) => [r.date, r]));
 
-  // Model 2: Rolling Average (compute inline since it doesn't have a unified compute function)
-  const raByDate = new Map<string, { rate: number; payCAD: number }>();
-  for (const p of payrolls) {
-    const rate = getRollingAverageRate(p.date, averagingWindow);
-    if (rate !== undefined) {
-      raByDate.set(p.date, { rate, payCAD: p.payAmountUSD * rate });
-    }
-  }
+  // Model 2: Rolling Average
+  const raResults = computeRollingAverage(payrolls, averagingWindow);
+  const raByDate = new Map(raResults.map((r) => [r.date, r]));
 
   // Build unified payroll array
   const unified: UnifiedPayroll[] = payrolls.map((p) => {
@@ -102,10 +104,10 @@ export function computeAllModels(
       date: p.date,
       payUSD: p.payAmountUSD,
       anniversaryLockCAD: al?.payAmountCAD,
-      rollingAverageCAD: ra?.payCAD,
+      rollingAverageCAD: ra?.payAmountCAD,
       currentRateCAD: cr?.payCAD,
       anniversaryLockRate: al?.lockedRate,
-      rollingAverageRate: ra?.rate,
+      rollingAverageRate: ra?.averageRate,
       currentRate: cr?.rate,
     };
   });
@@ -115,15 +117,28 @@ export function computeAllModels(
   const rollingAverage = computeModelSummary(unified, "rollingAverageCAD");
   const currentRate = computeModelSummary(unified, "currentRateCAD");
 
+  const diffAnniversaryVsRolling = anniversaryLock.totalCAD - rollingAverage.totalCAD;
+  const diffAnniversaryVsCurrent = anniversaryLock.totalCAD - currentRate.totalCAD;
+  const diffRollingVsCurrent = rollingAverage.totalCAD - currentRate.totalCAD;
+
   return {
     payrolls: unified,
     summary: {
       anniversaryLock,
       rollingAverage,
       currentRate,
-      diffAnniversaryVsRolling: anniversaryLock.totalCAD - rollingAverage.totalCAD,
-      diffAnniversaryVsCurrent: anniversaryLock.totalCAD - currentRate.totalCAD,
-      diffRollingVsCurrent: rollingAverage.totalCAD - currentRate.totalCAD,
+      diffAnniversaryVsRolling,
+      diffAnniversaryVsCurrent,
+      diffRollingVsCurrent,
+      diffAnniversaryVsRollingPct: rollingAverage.totalCAD !== 0
+        ? (diffAnniversaryVsRolling / rollingAverage.totalCAD) * 100
+        : 0,
+      diffAnniversaryVsCurrentPct: currentRate.totalCAD !== 0
+        ? (diffAnniversaryVsCurrent / currentRate.totalCAD) * 100
+        : 0,
+      diffRollingVsCurrentPct: currentRate.totalCAD !== 0
+        ? (diffRollingVsCurrent / currentRate.totalCAD) * 100
+        : 0,
     },
   };
 }

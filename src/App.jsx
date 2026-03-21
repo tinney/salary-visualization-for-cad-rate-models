@@ -57,10 +57,9 @@ export default function App() {
       <div style={{ padding: 24, background: '#fafafa', borderRadius: 8 }}>
         <h2 style={{ marginTop: 0 }}>CAD Salary Over Time</h2>
         <SalaryChart
-          baseSalary={baseSalary}
-          raisePercent={raisePercent}
-          startDate={startDate}
-          averagingWindow={averagingWindow}
+          anniversaryLock={anniversaryLockPayrolls}
+          rollingAverage={rollingAveragePayrolls}
+          currentRate={currentRatePayrolls}
         />
       </div>
 

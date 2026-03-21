@@ -65,4 +65,131 @@ describe("computeAllModels", () => {
       result.summary.currentRate.payrollCount
     );
   });
+
+  it("changing averagingWindow N affects Anniversary Lock totals", () => {
+    // N=1 vs N=12 should produce different Anniversary Lock CAD totals
+    // because the locked rate at the start date will differ
+    const resultN1 = computeAllModels(160000, 0, "2020-01-01", 1, "2022-12-31");
+    const resultN12 = computeAllModels(160000, 0, "2020-01-01", 12, "2022-12-31");
+
+    // Both should have positive totals
+    expect(resultN1.summary.anniversaryLock.totalCAD).toBeGreaterThan(0);
+    expect(resultN12.summary.anniversaryLock.totalCAD).toBeGreaterThan(0);
+
+    // The totals should differ because the N-month average rate differs
+    expect(resultN1.summary.anniversaryLock.totalCAD).not.toBeCloseTo(
+      resultN12.summary.anniversaryLock.totalCAD,
+      0
+    );
+  });
+
+  it("Anniversary Lock rate stays constant within an anniversary year", () => {
+    // All payrolls in the same anniversary year should have the same locked rate
+    const result = computeAllModels(160000, 0, "2020-01-01", 4, "2020-12-31");
+
+    const unifiedPayrolls = result.payrolls.filter(
+      (p) => p.anniversaryLockRate !== undefined
+    );
+    expect(unifiedPayrolls.length).toBeGreaterThan(0);
+
+    // All rates should be identical (locked at start-date anniversary)
+    const firstRate = unifiedPayrolls[0].anniversaryLockRate!;
+    for (const p of unifiedPayrolls) {
+      expect(p.anniversaryLockRate).toBeCloseTo(firstRate, 8);
+    }
+  });
+
+  // Sub-AC 11.1: totalCAD equals sum of individual payroll CAD values for all three models
+  it("totalCAD equals sum of individual anniversaryLockCAD payroll values", () => {
+    const result = computeAllModels(160000, 3, "2020-01-01", 4, "2022-12-31");
+    const expected = result.payrolls.reduce(
+      (sum, p) => sum + (p.anniversaryLockCAD ?? 0),
+      0
+    );
+    expect(result.summary.anniversaryLock.totalCAD).toBeCloseTo(expected, 2);
+  });
+
+  it("totalCAD equals sum of individual rollingAverageCAD payroll values", () => {
+    const result = computeAllModels(160000, 3, "2020-01-01", 4, "2022-12-31");
+    const expected = result.payrolls.reduce(
+      (sum, p) => sum + (p.rollingAverageCAD ?? 0),
+      0
+    );
+    expect(result.summary.rollingAverage.totalCAD).toBeCloseTo(expected, 2);
+  });
+
+  it("totalCAD equals sum of individual currentRateCAD payroll values", () => {
+    const result = computeAllModels(160000, 3, "2020-01-01", 4, "2022-12-31");
+    const expected = result.payrolls.reduce(
+      (sum, p) => sum + (p.currentRateCAD ?? 0),
+      0
+    );
+    expect(result.summary.currentRate.totalCAD).toBeCloseTo(expected, 2);
+  });
+
+  it("all three model totals are independently computed and non-zero", () => {
+    const result = computeAllModels(160000, 3, "2020-01-01", 4, "2025-12-31");
+    const { anniversaryLock, rollingAverage, currentRate } = result.summary;
+
+    // Each model independently sums its own CAD converted amounts
+    expect(anniversaryLock.totalCAD).toBeGreaterThan(0);
+    expect(rollingAverage.totalCAD).toBeGreaterThan(0);
+    expect(currentRate.totalCAD).toBeGreaterThan(0);
+
+    // Totals differ between models (different rate methods produce different results)
+    expect(anniversaryLock.totalCAD).not.toBeCloseTo(rollingAverage.totalCAD, 0);
+  });
+
+  // Sub-AC 11.3: Percentage differences between model pairs
+  it("percentage differences are consistent with absolute differences", () => {
+    const result = computeAllModels(160000, 3, "2020-01-01", 4, "2022-12-31");
+    const s = result.summary;
+
+    // pct = (diff / denominator) * 100
+    const expectedAvRollingPct =
+      (s.diffAnniversaryVsRolling / s.rollingAverage.totalCAD) * 100;
+    const expectedAvCurrentPct =
+      (s.diffAnniversaryVsCurrent / s.currentRate.totalCAD) * 100;
+    const expectedRvCurrentPct =
+      (s.diffRollingVsCurrent / s.currentRate.totalCAD) * 100;
+
+    expect(s.diffAnniversaryVsRollingPct).toBeCloseTo(expectedAvRollingPct, 4);
+    expect(s.diffAnniversaryVsCurrentPct).toBeCloseTo(expectedAvCurrentPct, 4);
+    expect(s.diffRollingVsCurrentPct).toBeCloseTo(expectedRvCurrentPct, 4);
+  });
+
+  it("percentage difference sign matches absolute difference sign", () => {
+    const result = computeAllModels(160000, 3, "2020-01-01", 4, "2022-12-31");
+    const s = result.summary;
+
+    // Sign of pct should always match sign of absolute diff
+    expect(Math.sign(s.diffAnniversaryVsRollingPct)).toBe(
+      Math.sign(s.diffAnniversaryVsRolling)
+    );
+    expect(Math.sign(s.diffAnniversaryVsCurrentPct)).toBe(
+      Math.sign(s.diffAnniversaryVsCurrent)
+    );
+    expect(Math.sign(s.diffRollingVsCurrentPct)).toBe(
+      Math.sign(s.diffRollingVsCurrent)
+    );
+  });
+
+  it("percentage differences are zero when no payroll data exists", () => {
+    const result = computeAllModels(160000, 3, "2030-01-01", 4, "2030-06-01");
+    const s = result.summary;
+
+    expect(s.diffAnniversaryVsRollingPct).toBe(0);
+    expect(s.diffAnniversaryVsCurrentPct).toBe(0);
+    expect(s.diffRollingVsCurrentPct).toBe(0);
+  });
+
+  it("percentage differences reflect relative magnitude between models", () => {
+    const result = computeAllModels(160000, 3, "2020-01-01", 4, "2025-12-31");
+    const s = result.summary;
+
+    // |pct| should be small (models are within ~10% of each other for realistic periods)
+    expect(Math.abs(s.diffAnniversaryVsRollingPct)).toBeLessThan(10);
+    expect(Math.abs(s.diffAnniversaryVsCurrentPct)).toBeLessThan(10);
+    expect(Math.abs(s.diffRollingVsCurrentPct)).toBeLessThan(10);
+  });
 });

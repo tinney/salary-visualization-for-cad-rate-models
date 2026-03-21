@@ -74,8 +74,8 @@ export default function AveragingWindowInput({
         <span>mo</span>
       </div>
       <span className="control-hint">
-        Number of prior months averaged for the rolling-average rate model (
-        {MIN_WINDOW}–{MAX_WINDOW})
+        Number of prior months averaged for the Anniversary Lock and Rolling
+        Average rate models ({MIN_WINDOW}–{MAX_WINDOW})
       </span>
     </div>
   );

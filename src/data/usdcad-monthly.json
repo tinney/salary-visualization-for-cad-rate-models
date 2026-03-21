@@ -1,7 +1,7 @@
 {
   "description": "Monthly average USD/CAD exchange rates from Bank of Canada",
   "source": "Bank of Canada Valet API (IEXE0101 + FXUSDCAD series)",
-  "generatedAt": "2026-03-21T19:03:10.256Z",
+  "generatedAt": "2026-03-21T20:01:30.526Z",
   "rates": [
     {
       "month": "2011-01",
