@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { DEFAULTS } from './defaults.ts';
 import StartDatePicker from './components/StartDatePicker.tsx';
 import BaseSalaryInput from './components/BaseSalaryInput.tsx';
@@ -7,18 +7,36 @@ import AveragingWindowInput from './components/AveragingWindowInput.tsx';
 import SalaryChart from './components/SalaryChart.tsx';
 import SummaryStatistics from './components/SummaryStatistics.tsx';
 import AggregatedTable from './components/AggregatedTable.tsx';
+import CurrencyRatesTable from './components/CurrencyRatesTable.tsx';
 import { computeAllModels } from './utils/computeAllModels.ts';
+import { getAllRates, setRate as setRateInData, resetRates as resetRatesInData } from './utils/rateData.ts';
+import { setRateInModels, resetRatesInModels } from './utils/rateModels.ts';
 
 export default function App() {
   const [startDate, setStartDate] = useState(DEFAULTS.START_DATE);
   const [baseSalary, setBaseSalary] = useState(DEFAULTS.BASE_SALARY_USD);
   const [raisePercent, setRaisePercent] = useState(DEFAULTS.ANNUAL_RAISE_PCT);
   const [averagingWindow, setAveragingWindow] = useState(DEFAULTS.RATE_AVERAGING_WINDOW_MONTHS);
+  const [rateVersion, setRateVersion] = useState(0);
+
+  const handleRateChange = useCallback((month, rate) => {
+    setRateInData(month, rate);
+    setRateInModels(month, rate);
+    setRateVersion((v) => v + 1);
+  }, []);
+
+  const handleRateReset = useCallback(() => {
+    resetRatesInData();
+    resetRatesInModels();
+    setRateVersion((v) => v + 1);
+  }, []);
+
+  const currentRates = useMemo(() => getAllRates(), [rateVersion]);
 
   // Compute all models once and share across components
   const { payrolls } = useMemo(
     () => computeAllModels(baseSalary, raisePercent, startDate, averagingWindow),
-    [baseSalary, raisePercent, startDate, averagingWindow]
+    [baseSalary, raisePercent, startDate, averagingWindow, rateVersion]
   );
 
   // Map unified payrolls to the NormalizedPayroll shape for each model
@@ -76,6 +94,14 @@ export default function App() {
           anniversaryLock={anniversaryLockPayrolls}
           rollingAverage={rollingAveragePayrolls}
           currentRate={currentRatePayrolls}
+        />
+      </div>
+
+      <div style={{ padding: 24, background: '#fafafa', borderRadius: 8, marginTop: 24 }}>
+        <CurrencyRatesTable
+          rates={currentRates}
+          onRateChange={handleRateChange}
+          onReset={handleRateReset}
         />
       </div>
     </div>

@@ -10,11 +10,46 @@ export interface RateEntry {
   rate: number;
 }
 
-/** All monthly rates sorted chronologically */
-export const rates: RateEntry[] = (rawData as any).rates as RateEntry[];
+/** Original rates from JSON (immutable reference) */
+const originalRates: RateEntry[] = (rawData as any).rates as RateEntry[];
+
+/** All monthly rates sorted chronologically (may include overrides) */
+export let rates: RateEntry[] = [...originalRates];
 
 /** Map from "YYYY-MM" → rate for O(1) lookup */
 const rateMap = new Map<string, number>(rates.map((r) => [r.month, r.rate]));
+
+/**
+ * Update a single month's rate. Mutates the module-level rate map and array.
+ */
+export function setRate(month: string, rate: number): void {
+  rateMap.set(month, rate);
+  const idx = rates.findIndex((r) => r.month === month);
+  if (idx >= 0) {
+    rates[idx] = { month, rate };
+  } else {
+    rates.push({ month, rate });
+    rates.sort((a, b) => a.month.localeCompare(b.month));
+  }
+}
+
+/**
+ * Reset all rates to original JSON values.
+ */
+export function resetRates(): void {
+  rateMap.clear();
+  rates = [...originalRates];
+  for (const r of rates) {
+    rateMap.set(r.month, r.rate);
+  }
+}
+
+/**
+ * Get all current rates as an array.
+ */
+export function getAllRates(): RateEntry[] {
+  return rates;
+}
 
 /**
  * Get the rate for a specific month key (e.g. "2020-01").
