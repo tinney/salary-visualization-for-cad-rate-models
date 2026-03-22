@@ -8,6 +8,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  ReferenceLine,
 } from "recharts";
 import { computeChartData, type ChartDataPoint } from "../utils/computeChartData";
 
@@ -45,10 +46,18 @@ function formatCADFull(value: number): string {
 }
 
 /** Custom tooltip */
-function ChartTooltip({ active, payload, label }: any) {
+function ChartTooltip({ active, payload, label, isCumulative }: any) {
   if (!active || !payload || payload.length === 0) return null;
 
   const point = payload[0]?.payload as ChartDataPoint;
+
+  const formatValue = (value: number) => {
+    if (isCumulative) {
+      const sign = value >= 0 ? "+" : "";
+      return `${sign}${formatCADFull(value)}`;
+    }
+    return formatCADFull(value);
+  };
 
   return (
     <div
@@ -62,12 +71,19 @@ function ChartTooltip({ active, payload, label }: any) {
       }}
     >
       <div style={{ fontWeight: 600, marginBottom: 6 }}>{point.label}</div>
-      <div style={{ color: "#666", marginBottom: 6 }}>
-        USD Pay: {formatCADFull(point.payUSD).replace("CA", "US")}
-      </div>
+      {!isCumulative && (
+        <div style={{ color: "#666", marginBottom: 6 }}>
+          USD Pay: {formatCADFull(point.payUSD).replace("CA", "US")}
+        </div>
+      )}
+      {isCumulative && (
+        <div style={{ color: "#666", marginBottom: 6, fontStyle: "italic" }}>
+          vs Anniversary Lock baseline
+        </div>
+      )}
       {payload.map((entry: any) => (
         <div key={entry.dataKey} style={{ color: entry.color, marginBottom: 2 }}>
-          {entry.name}: {formatCADFull(entry.value)}
+          {entry.name}: {formatValue(entry.value)}
         </div>
       ))}
     </div>
@@ -104,6 +120,23 @@ export default function SalaryChart({
 
   const yearTicks = useMemo(() => getYearTicks(data), [data]);
 
+  // Compute a tight y-axis domain for per-payroll view
+  const perPayrollDomain = useMemo(() => {
+    const vals = data.flatMap((d) =>
+      [d.anniversaryCAD, d.rollingCAD, d.currentCAD].filter(
+        (v): v is number => v !== null
+      )
+    );
+    if (vals.length === 0) return [0, 1] as [number, number];
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    const padding = (max - min) * 0.1 || 100;
+    return [
+      Math.floor((min - padding) / 100) * 100,
+      Math.ceil((max + padding) / 100) * 100,
+    ] as [number, number];
+  }, [data]);
+
   if (data.length === 0) {
     return (
       <div style={{ padding: 24, textAlign: "center", color: "#888" }}>
@@ -114,9 +147,9 @@ export default function SalaryChart({
 
   const isCumulative = viewMode === "cumulative";
 
-  const anniversaryKey = isCumulative ? "anniversaryCumCAD" : "anniversaryCAD";
-  const rollingKey = isCumulative ? "rollingCumCAD" : "rollingCAD";
-  const currentKey = isCumulative ? "currentCumCAD" : "currentCAD";
+  const anniversaryKey = isCumulative ? "anniversaryDiffCAD" : "anniversaryCAD";
+  const rollingKey = isCumulative ? "rollingDiffCAD" : "rollingCAD";
+  const currentKey = isCumulative ? "currentDiffCAD" : "currentCAD";
 
   return (
     <div>
@@ -148,7 +181,7 @@ export default function SalaryChart({
             fontWeight: viewMode === "cumulative" ? 600 : 400,
           }}
         >
-          Cumulative
+          Cumulative Diff
         </button>
       </div>
 
@@ -162,19 +195,28 @@ export default function SalaryChart({
             tick={{ fontSize: 12 }}
           />
           <YAxis
-            tickFormatter={(v: number) => formatCAD(v)}
+            domain={isCumulative ? ["auto", "auto"] : perPayrollDomain}
+            tickFormatter={(v: number) =>
+              isCumulative
+                ? (v >= 0 ? "+" : "") + formatCAD(v)
+                : formatCAD(v)
+            }
             tick={{ fontSize: 12 }}
             width={100}
           />
-          <Tooltip content={<ChartTooltip />} />
+          {isCumulative && (
+            <ReferenceLine y={0} stroke="#666" strokeDasharray="4 4" />
+          )}
+          <Tooltip content={<ChartTooltip isCumulative={isCumulative} />} />
           <Legend />
           <Line
             type="monotone"
             dataKey={anniversaryKey}
-            name="Anniversary Lock"
+            name={isCumulative ? "Anniversary Lock (baseline)" : "Anniversary Lock"}
             stroke={MODEL_COLORS.anniversary}
             dot={false}
-            strokeWidth={2}
+            strokeWidth={isCumulative ? 1 : 2}
+            strokeDasharray={isCumulative ? "4 4" : undefined}
             connectNulls
           />
           <Line
