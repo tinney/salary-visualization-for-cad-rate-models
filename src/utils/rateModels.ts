@@ -12,10 +12,30 @@ export interface MonthlyRate {
   rate: number;
 }
 
-/** All monthly rates indexed by "YYYY-MM" for O(1) lookup */
-const ratesByMonth: Record<string, number> = {};
+/** Original rates from JSON */
+const originalRatesByMonth: Record<string, number> = {};
 for (const entry of (rateData as { rates: MonthlyRate[] }).rates) {
-  ratesByMonth[entry.month] = entry.rate;
+  originalRatesByMonth[entry.month] = entry.rate;
+}
+
+/** All monthly rates indexed by "YYYY-MM" for O(1) lookup */
+const ratesByMonth: Record<string, number> = { ...originalRatesByMonth };
+
+/**
+ * Update a single month's rate in the rateModels lookup.
+ */
+export function setRateInModels(month: string, rate: number): void {
+  ratesByMonth[month] = rate;
+}
+
+/**
+ * Reset all rates to original JSON values.
+ */
+export function resetRatesInModels(): void {
+  for (const key of Object.keys(ratesByMonth)) {
+    delete ratesByMonth[key];
+  }
+  Object.assign(ratesByMonth, originalRatesByMonth);
 }
 
 /**
