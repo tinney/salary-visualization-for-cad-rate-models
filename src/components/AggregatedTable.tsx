@@ -79,6 +79,15 @@ function formatCurrency(value: number): string {
   });
 }
 
+function formatDiff(diff: number): { text: string; color: string } {
+  if (diff > 0) {
+    return { text: `+${formatCurrency(diff)}`, color: "#22863a" };
+  } else if (diff < 0) {
+    return { text: `−${formatCurrency(Math.abs(diff))}`, color: "#d73a49" };
+  }
+  return { text: formatCurrency(0), color: "#0366d6" };
+}
+
 function formatUSD(value: number): string {
   return value.toLocaleString("en-US", {
     style: "currency",
@@ -192,6 +201,8 @@ export default function AggregatedTable({
             {rows.map((row) => {
               const vals = [row.anniversaryLockCAD, row.rollingAverageCAD, row.currentRateCAD];
               const spread = Math.max(...vals) - Math.min(...vals);
+              const rollingDiff = formatDiff(row.rollingAverageCAD - row.anniversaryLockCAD);
+              const currentDiff = formatDiff(row.currentRateCAD - row.anniversaryLockCAD);
               return (
                 <tr
                   key={row.sortKey}
@@ -204,11 +215,11 @@ export default function AggregatedTable({
                   <td style={{ padding: "6px 12px", textAlign: "right" }}>
                     {formatCurrency(row.anniversaryLockCAD)}
                   </td>
-                  <td style={{ padding: "6px 12px", textAlign: "right" }}>
-                    {formatCurrency(row.rollingAverageCAD)}
+                  <td style={{ padding: "6px 12px", textAlign: "right", color: rollingDiff.color }}>
+                    {rollingDiff.text}
                   </td>
-                  <td style={{ padding: "6px 12px", textAlign: "right" }}>
-                    {formatCurrency(row.currentRateCAD)}
+                  <td style={{ padding: "6px 12px", textAlign: "right", color: currentDiff.color }}>
+                    {currentDiff.text}
                   </td>
                   <td style={{ padding: "6px 12px", textAlign: "right", color: "#666" }}>
                     {formatCurrency(spread)}
@@ -218,27 +229,33 @@ export default function AggregatedTable({
             })}
           </tbody>
           <tfoot>
-            <tr style={{ borderTop: "2px solid #333", fontWeight: 700 }}>
-              <td style={{ padding: "8px 12px" }}>Grand Total</td>
-              <td style={{ padding: "8px 12px", textAlign: "right" }}>
-                {formatUSD(totals.usd)}
-              </td>
-              <td style={{ padding: "8px 12px", textAlign: "right", color: "#8884d8" }}>
-                {formatCurrency(totals.anniversaryLockCAD)}
-              </td>
-              <td style={{ padding: "8px 12px", textAlign: "right", color: "#82ca9d" }}>
-                {formatCurrency(totals.rollingAverageCAD)}
-              </td>
-              <td style={{ padding: "8px 12px", textAlign: "right", color: "#ff7300" }}>
-                {formatCurrency(totals.currentRateCAD)}
-              </td>
-              <td style={{ padding: "8px 12px", textAlign: "right", color: "#666" }}>
-                {formatCurrency(
-                  Math.max(totals.anniversaryLockCAD, totals.rollingAverageCAD, totals.currentRateCAD) -
-                  Math.min(totals.anniversaryLockCAD, totals.rollingAverageCAD, totals.currentRateCAD)
-                )}
-              </td>
-            </tr>
+            {(() => {
+              const rollingDiff = formatDiff(totals.rollingAverageCAD - totals.anniversaryLockCAD);
+              const currentDiff = formatDiff(totals.currentRateCAD - totals.anniversaryLockCAD);
+              return (
+                <tr style={{ borderTop: "2px solid #333", fontWeight: 700 }}>
+                  <td style={{ padding: "8px 12px" }}>Grand Total</td>
+                  <td style={{ padding: "8px 12px", textAlign: "right" }}>
+                    {formatUSD(totals.usd)}
+                  </td>
+                  <td style={{ padding: "8px 12px", textAlign: "right", color: "#8884d8" }}>
+                    {formatCurrency(totals.anniversaryLockCAD)}
+                  </td>
+                  <td style={{ padding: "8px 12px", textAlign: "right", color: rollingDiff.color, fontWeight: 700 }}>
+                    {rollingDiff.text}
+                  </td>
+                  <td style={{ padding: "8px 12px", textAlign: "right", color: currentDiff.color, fontWeight: 700 }}>
+                    {currentDiff.text}
+                  </td>
+                  <td style={{ padding: "8px 12px", textAlign: "right", color: "#666" }}>
+                    {formatCurrency(
+                      Math.max(totals.anniversaryLockCAD, totals.rollingAverageCAD, totals.currentRateCAD) -
+                      Math.min(totals.anniversaryLockCAD, totals.rollingAverageCAD, totals.currentRateCAD)
+                    )}
+                  </td>
+                </tr>
+              );
+            })()}
           </tfoot>
         </table>
       </div>
