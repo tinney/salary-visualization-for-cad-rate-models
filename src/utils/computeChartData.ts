@@ -28,6 +28,11 @@ export interface ChartDataPoint {
   anniversaryCumCAD: number;
   rollingCumCAD: number;
   currentCumCAD: number;
+
+  // --- cumulative diff vs Anniversary Lock baseline ---
+  anniversaryDiffCAD: number;
+  rollingDiffCAD: number;
+  currentDiffCAD: number;
 }
 
 export interface ComputeChartDataParams {
@@ -105,6 +110,9 @@ export function computeChartData(params: ComputeChartDataParams): ChartDataPoint
       anniversaryCumCAD: anniversaryCum,
       rollingCumCAD: rollingCum,
       currentCumCAD: currentCum,
+      anniversaryDiffCAD: 0,
+      rollingDiffCAD: rollingCum - anniversaryCum,
+      currentDiffCAD: currentCum - anniversaryCum,
     });
   }
 
