@@ -17,6 +17,7 @@ interface SalaryChartProps {
   raisePercent: number;
   startDate: string;
   averagingWindow: number;
+  lockPeriodMonths: number;
 }
 
 type ViewMode = "per-payroll" | "cumulative";
@@ -110,13 +111,14 @@ export default function SalaryChart({
   raisePercent,
   startDate,
   averagingWindow,
+  lockPeriodMonths,
 }: SalaryChartProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("per-payroll");
 
   const data = useMemo(
     () =>
-      computeChartData({ baseSalary, raisePercent, startDate, averagingWindow }),
-    [baseSalary, raisePercent, startDate, averagingWindow]
+      computeChartData({ baseSalary, raisePercent, startDate, averagingWindow, lockPeriodMonths }),
+    [baseSalary, raisePercent, startDate, averagingWindow, lockPeriodMonths]
   );
 
   const yearTicks = useMemo(() => getYearTicks(data), [data]);

@@ -5,6 +5,7 @@ import StartDatePicker from './components/StartDatePicker.tsx';
 import BaseSalaryInput from './components/BaseSalaryInput.tsx';
 import RaiseInput from './components/RaiseInput.tsx';
 import AveragingWindowInput from './components/AveragingWindowInput.tsx';
+import RateLockPeriodInput from './components/RateLockPeriodInput.tsx';
 import SalaryChart from './components/SalaryChart.tsx';
 import SummaryStatistics from './components/SummaryStatistics.tsx';
 import AggregatedTable from './components/AggregatedTable.tsx';
@@ -18,6 +19,7 @@ export default function App() {
   const [baseSalary, setBaseSalary] = useState(DEFAULTS.BASE_SALARY_USD);
   const [raisePercent, setRaisePercent] = useState(DEFAULTS.ANNUAL_RAISE_PCT);
   const [averagingWindow, setAveragingWindow] = useState(DEFAULTS.RATE_AVERAGING_WINDOW_MONTHS);
+  const [lockPeriodMonths, setLockPeriodMonths] = useState(DEFAULTS.RATE_LOCK_PERIOD_MONTHS);
   const [rateVersion, setRateVersion] = useState(0);
 
   const handleRateChange = useCallback((month, rate) => {
@@ -36,8 +38,8 @@ export default function App() {
 
   // Compute all models once and share across components
   const { payrolls } = useMemo(
-    () => computeAllModels(baseSalary, raisePercent, startDate, averagingWindow),
-    [baseSalary, raisePercent, startDate, averagingWindow, rateVersion]
+    () => computeAllModels(baseSalary, raisePercent, startDate, averagingWindow, undefined, lockPeriodMonths),
+    [baseSalary, raisePercent, startDate, averagingWindow, lockPeriodMonths, rateVersion]
   );
 
   // Map unified payrolls to the NormalizedPayroll shape for each model
@@ -84,6 +86,7 @@ export default function App() {
           <RaiseInput raisePercent={raisePercent} onChange={setRaisePercent} />
           <BaseSalaryInput value={baseSalary} onChange={setBaseSalary} />
           <AveragingWindowInput windowMonths={averagingWindow} onChange={setAveragingWindow} />
+          <RateLockPeriodInput lockPeriodMonths={lockPeriodMonths} onChange={setLockPeriodMonths} />
         </div>
       </div>
 
@@ -94,6 +97,7 @@ export default function App() {
           raisePercent={raisePercent}
           startDate={startDate}
           averagingWindow={averagingWindow}
+          lockPeriodMonths={lockPeriodMonths}
         />
       </div>
 
@@ -102,6 +106,7 @@ export default function App() {
         raisePercent={raisePercent}
         startDate={startDate}
         averagingWindow={averagingWindow}
+        lockPeriodMonths={lockPeriodMonths}
       />
 
       <div style={{ padding: 24, background: '#fafafa', borderRadius: 8, marginTop: 24 }}>

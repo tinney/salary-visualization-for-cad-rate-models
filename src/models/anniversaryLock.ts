@@ -1,12 +1,12 @@
 /**
- * Model 1 – Anniversary Lock
+ * Model 1 – Anniversary Lock (with configurable lock period)
  *
  * Locks the USD/CAD exchange rate at the employee's start date and at each
- * yearly anniversary.  The locked rate is the N-month trailing average
- * (where N = averagingWindow) ending at the anniversary month.
+ * lock-period boundary.  The locked rate is the N-month trailing average
+ * (where N = averagingWindow) ending at the boundary month.
  *
- * The locked rate stays constant for all payrolls between two consecutive
- * anniversaries.
+ * When lockPeriodMonths = 12, this behaves like a yearly anniversary lock.
+ * When lockPeriodMonths = 2, the rate resets every 2 months, etc.
  */
 
 import { PayrollEntry } from "../utils/payroll";
@@ -26,71 +26,65 @@ export interface AnniversaryLockResult {
 /**
  * Compute the anniversary-locked rate for each payroll entry.
  *
- * @param payrolls       Ordered payroll schedule from generatePayrollSchedule
- * @param startDate      Employee start date (ISO string YYYY-MM-DD)
- * @param averagingWindow Number of months to average for rate lock (e.g. 4)
+ * @param payrolls          Ordered payroll schedule from generatePayrollSchedule
+ * @param startDate         Employee start date (ISO string YYYY-MM-DD)
+ * @param averagingWindow   Number of months to average for rate lock (e.g. 4)
+ * @param lockPeriodMonths  How often the rate resets, in months (1–12, default 12)
  * @returns Array of results with locked rates and CAD amounts
  */
 export function computeAnniversaryLock(
   payrolls: PayrollEntry[],
   startDate: string,
-  averagingWindow: number
+  averagingWindow: number,
+  lockPeriodMonths: number = 12
 ): AnniversaryLockResult[] {
   const start = new Date(startDate + "T00:00:00");
-  const startMonth = start.getMonth(); // 0-based
-  const startDay = start.getDate();
 
-  // Pre-compute locked rates for each anniversary year we might need.
-  // Cache: year-index → locked rate
+  // Cache: period-index → locked rate
   const lockedRateCache = new Map<number, number>();
 
-  function getLockedRateForAnniversary(yearIndex: number): number {
-    if (lockedRateCache.has(yearIndex)) {
-      return lockedRateCache.get(yearIndex)!;
+  function getLockedRateForPeriod(periodIndex: number): number {
+    if (lockedRateCache.has(periodIndex)) {
+      return lockedRateCache.get(periodIndex)!;
     }
 
-    // The anniversary date for yearIndex
-    const anniversaryDate = new Date(
-      start.getFullYear() + yearIndex,
-      startMonth,
-      startDay
+    // The boundary date for this period: start + (periodIndex * lockPeriodMonths) months
+    const boundaryDate = new Date(
+      start.getFullYear(),
+      start.getMonth() + periodIndex * lockPeriodMonths,
+      start.getDate()
     );
-    const monthKey = toMonthKey(anniversaryDate);
+    const monthKey = toMonthKey(boundaryDate);
     const rate = getAverageRate(monthKey, averagingWindow);
 
-    // Fallback: if no rate data available, use 1.0 (shouldn't happen with real data)
     const finalRate = rate ?? 1.0;
-    lockedRateCache.set(yearIndex, finalRate);
+    lockedRateCache.set(periodIndex, finalRate);
     return finalRate;
   }
 
   /**
-   * Determine which anniversary year-index governs a given payroll date.
-   * Year-index 0 = from start date until first anniversary.
-   * Year-index 1 = from first anniversary until second, etc.
+   * Determine which lock-period index governs a given payroll date.
+   * Period 0 = from start date until start + lockPeriodMonths.
+   * Period 1 = from start + lockPeriodMonths until start + 2*lockPeriodMonths, etc.
    */
-  function getAnniversaryYearIndex(payrollDate: Date): number {
-    const pYear = payrollDate.getFullYear();
-    const pMonth = payrollDate.getMonth();
-    const pDay = payrollDate.getDate();
+  function getLockPeriodIndex(payrollDate: Date): number {
+    // Calculate total months elapsed since start
+    const monthsElapsed =
+      (payrollDate.getFullYear() - start.getFullYear()) * 12 +
+      (payrollDate.getMonth() - start.getMonth());
 
-    let years = pYear - start.getFullYear();
+    // Check if we haven't reached the day-of-month boundary yet
+    const dayAdjust = payrollDate.getDate() < start.getDate() ? 1 : 0;
+    const adjustedMonths = monthsElapsed - dayAdjust;
 
-    // If we haven't reached the anniversary in this calendar year yet
-    if (
-      pMonth < startMonth ||
-      (pMonth === startMonth && pDay < startDay)
-    ) {
-      years -= 1;
-    }
-
-    return Math.max(0, years);
+    const periodIndex = Math.floor(Math.max(0, adjustedMonths) / lockPeriodMonths);
+    return Math.max(0, periodIndex);
   }
 
   return payrolls.map((p) => {
     const payDate = new Date(p.date + "T00:00:00");
-    const yearIndex = getAnniversaryYearIndex(payDate);
-    const lockedRate = getLockedRateForAnniversary(yearIndex);
+    const periodIndex = getLockPeriodIndex(payDate);
+    const lockedRate = getLockedRateForPeriod(periodIndex);
 
     return {
       date: p.date,
