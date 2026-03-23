@@ -23,6 +23,7 @@ type ViewMode = "per-payroll" | "cumulative";
 
 const MODEL_COLORS = {
   anniversary: "#2563eb", // blue
+  tdModel: "rgb(117, 254, 4)", // bright green
   rolling: "#16a34a",     // green
   current: "#dc2626",     // red
 };
@@ -78,7 +79,7 @@ function ChartTooltip({ active, payload, label, isCumulative }: any) {
       )}
       {isCumulative && (
         <div style={{ color: "#666", marginBottom: 6, fontStyle: "italic" }}>
-          vs Anniversary Lock baseline
+          vs TD Model baseline
         </div>
       )}
       {payload.map((entry: any) => (
@@ -123,7 +124,7 @@ export default function SalaryChart({
   // Compute a tight y-axis domain for per-payroll view
   const perPayrollDomain = useMemo(() => {
     const vals = data.flatMap((d) =>
-      [d.anniversaryCAD, d.rollingCAD, d.currentCAD].filter(
+      [d.anniversaryCAD, d.tdModelCAD, d.rollingCAD, d.currentCAD].filter(
         (v): v is number => v !== null
       )
     );
@@ -148,6 +149,7 @@ export default function SalaryChart({
   const isCumulative = viewMode === "cumulative";
 
   const anniversaryKey = isCumulative ? "anniversaryDiffCAD" : "anniversaryCAD";
+  const tdModelKey = isCumulative ? "tdModelDiffCAD" : "tdModelCAD";
   const rollingKey = isCumulative ? "rollingDiffCAD" : "rollingCAD";
   const currentKey = isCumulative ? "currentDiffCAD" : "currentCAD";
 
@@ -211,12 +213,21 @@ export default function SalaryChart({
           <Legend />
           <Line
             type="monotone"
-            dataKey={anniversaryKey}
-            name={isCumulative ? "Anniversary Lock (baseline)" : "Anniversary Lock"}
-            stroke={MODEL_COLORS.anniversary}
+            dataKey={tdModelKey}
+            name={isCumulative ? "TD Model (baseline)" : "TD Model"}
+            stroke={MODEL_COLORS.tdModel}
             dot={false}
             strokeWidth={isCumulative ? 1 : 2}
             strokeDasharray={isCumulative ? "4 4" : undefined}
+            connectNulls
+          />
+          <Line
+            type="monotone"
+            dataKey={anniversaryKey}
+            name="Avg Rate Locked"
+            stroke={MODEL_COLORS.anniversary}
+            dot={false}
+            strokeWidth={2}
             connectNulls
           />
           <Line

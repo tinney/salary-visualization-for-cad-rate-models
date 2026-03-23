@@ -21,16 +21,19 @@ export interface ChartDataPoint {
 
   // --- per-payroll CAD amounts ---
   anniversaryCAD: number | null;
+  tdModelCAD: number | null;
   rollingCAD: number | null;
   currentCAD: number | null;
 
   // --- cumulative CAD amounts ---
   anniversaryCumCAD: number;
+  tdModelCumCAD: number;
   rollingCumCAD: number;
   currentCumCAD: number;
 
-  // --- cumulative diff vs Anniversary Lock baseline ---
+  // --- cumulative diff vs Avg Rate Locked baseline ---
   anniversaryDiffCAD: number;
+  tdModelDiffCAD: number;
   rollingDiffCAD: number;
   currentDiffCAD: number;
 }
@@ -57,8 +60,11 @@ export function computeChartData(params: ComputeChartDataParams): ChartDataPoint
   const payrolls = generatePayrollSchedule(baseSalary, raisePercent, startDate, endDate);
   if (payrolls.length === 0) return [];
 
-  // Model 1 – Anniversary Lock
+  // Model 1 – Avg Rate Locked
   const model1 = computeAnniversaryLock(payrolls, startDate, averagingWindow);
+
+  // TD Model – Anniversary Lock with fixed 4-month window
+  const tdModel = computeAnniversaryLock(payrolls, startDate, 4);
 
   // Model 3 – Current Rate (has its own skip logic, but we'll compute inline too)
   const model3 = computeCurrentRate(payrolls);
@@ -66,6 +72,7 @@ export function computeChartData(params: ComputeChartDataParams): ChartDataPoint
 
   // Build unified data
   let anniversaryCum = 0;
+  let tdModelCum = 0;
   let rollingCum = 0;
   let currentCum = 0;
 
@@ -79,9 +86,13 @@ export function computeChartData(params: ComputeChartDataParams): ChartDataPoint
     const spotRate = getRateForMonth(monthKey);
     if (spotRate === undefined) continue;
 
-    // Model 1
+    // Model 1 – Avg Rate Locked
     const m1 = model1[i];
     const annivCAD = m1 ? m1.payAmountCAD : null;
+
+    // TD Model
+    const td = tdModel[i];
+    const tdCAD = td ? td.payAmountCAD : null;
 
     // Model 2 – Rolling Average
     const rollingRate = getRollingAverageRate(p.date, averagingWindow);
@@ -93,6 +104,7 @@ export function computeChartData(params: ComputeChartDataParams): ChartDataPoint
 
     // Cumulative
     if (annivCAD !== null) anniversaryCum += annivCAD;
+    if (tdCAD !== null) tdModelCum += tdCAD;
     if (rollCAD !== null) rollingCum += rollCAD;
     if (curCAD !== null) currentCum += curCAD;
 
@@ -105,14 +117,17 @@ export function computeChartData(params: ComputeChartDataParams): ChartDataPoint
       label,
       payUSD: p.payAmountUSD,
       anniversaryCAD: annivCAD,
+      tdModelCAD: tdCAD,
       rollingCAD: rollCAD,
       currentCAD: curCAD,
       anniversaryCumCAD: anniversaryCum,
+      tdModelCumCAD: tdModelCum,
       rollingCumCAD: rollingCum,
       currentCumCAD: currentCum,
-      anniversaryDiffCAD: 0,
-      rollingDiffCAD: rollingCum - anniversaryCum,
-      currentDiffCAD: currentCum - anniversaryCum,
+      tdModelDiffCAD: 0,
+      anniversaryDiffCAD: anniversaryCum - tdModelCum,
+      rollingDiffCAD: rollingCum - tdModelCum,
+      currentDiffCAD: currentCum - tdModelCum,
     });
   }
 

@@ -33,18 +33,23 @@ export default function SummaryStatistics({
   );
 
   const models = [
-    { label: "Anniversary Lock", key: "anniversaryLock" as const, color: "#2563eb" },
+    { label: "TD Model", key: "tdModel" as const, color: "rgb(117, 254, 4)" },
+    { label: "Avg Rate Locked", key: "anniversaryLock" as const, color: "#2563eb" },
     { label: "Rolling Average", key: "rollingAverage" as const, color: "#16a34a" },
     { label: "Current Rate", key: "currentRate" as const, color: "#dc2626" },
   ];
 
   const comparisons = [
     {
-      label: "Anniversary Lock vs Rolling Average",
+      label: "TD Model vs Avg Rate Locked",
+      value: summary.diffTdModelVsAnniversaryLock,
+    },
+    {
+      label: "Avg Rate Locked vs Rolling Average",
       value: summary.diffAnniversaryVsRolling,
     },
     {
-      label: "Anniversary Lock vs Current Rate",
+      label: "Avg Rate Locked vs Current Rate",
       value: summary.diffAnniversaryVsCurrent,
     },
     {

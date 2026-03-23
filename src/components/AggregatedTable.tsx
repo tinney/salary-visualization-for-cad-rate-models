@@ -14,8 +14,10 @@ export interface NormalizedPayroll {
 }
 
 export interface AggregatedTableProps {
-  /** Model 1 (Anniversary Lock) payrolls */
+  /** Model 1 (Avg Rate Locked) payrolls */
   anniversaryLock: NormalizedPayroll[];
+  /** TD Model payrolls */
+  tdModel: NormalizedPayroll[];
   /** Model 2 (Rolling Average) payrolls */
   rollingAverage: NormalizedPayroll[];
   /** Model 3 (Current Rate) payrolls */
@@ -28,6 +30,7 @@ interface PeriodRow {
   label: string;
   sortKey: string;
   anniversaryLockCAD: number;
+  tdModelCAD: number;
   rollingAverageCAD: number;
   currentRateCAD: number;
   usd: number;
@@ -99,6 +102,7 @@ function formatUSD(value: number): string {
 
 export default function AggregatedTable({
   anniversaryLock,
+  tdModel,
   rollingAverage,
   currentRate,
 }: AggregatedTableProps) {
@@ -106,28 +110,31 @@ export default function AggregatedTable({
 
   const rows = useMemo(() => {
     const m1 = aggregateByPeriod(anniversaryLock, mode);
+    const mTd = aggregateByPeriod(tdModel, mode);
     const m2 = aggregateByPeriod(rollingAverage, mode);
     const m3 = aggregateByPeriod(currentRate, mode);
 
     // Collect all period keys
     const allKeys = new Set<string>();
     for (const k of m1.keys()) allKeys.add(k);
+    for (const k of mTd.keys()) allKeys.add(k);
     for (const k of m2.keys()) allKeys.add(k);
     for (const k of m3.keys()) allKeys.add(k);
 
     const sorted = Array.from(allKeys).sort();
 
     const periodRows: PeriodRow[] = sorted.map((key) => ({
-      label: m1.get(key)?.label ?? m2.get(key)?.label ?? m3.get(key)?.label ?? key,
+      label: m1.get(key)?.label ?? mTd.get(key)?.label ?? m2.get(key)?.label ?? m3.get(key)?.label ?? key,
       sortKey: key,
       anniversaryLockCAD: m1.get(key)?.totalCAD ?? 0,
+      tdModelCAD: mTd.get(key)?.totalCAD ?? 0,
       rollingAverageCAD: m2.get(key)?.totalCAD ?? 0,
       currentRateCAD: m3.get(key)?.totalCAD ?? 0,
-      usd: m1.get(key)?.totalUSD ?? m2.get(key)?.totalUSD ?? m3.get(key)?.totalUSD ?? 0,
+      usd: m1.get(key)?.totalUSD ?? mTd.get(key)?.totalUSD ?? m2.get(key)?.totalUSD ?? m3.get(key)?.totalUSD ?? 0,
     }));
 
     return periodRows;
-  }, [anniversaryLock, rollingAverage, currentRate, mode]);
+  }, [anniversaryLock, tdModel, rollingAverage, currentRate, mode]);
 
   // Grand totals
   const totals = useMemo(() => {
@@ -135,10 +142,11 @@ export default function AggregatedTable({
       (acc, r) => ({
         usd: acc.usd + r.usd,
         anniversaryLockCAD: acc.anniversaryLockCAD + r.anniversaryLockCAD,
+        tdModelCAD: acc.tdModelCAD + r.tdModelCAD,
         rollingAverageCAD: acc.rollingAverageCAD + r.rollingAverageCAD,
         currentRateCAD: acc.currentRateCAD + r.currentRateCAD,
       }),
-      { usd: 0, anniversaryLockCAD: 0, rollingAverageCAD: 0, currentRateCAD: 0 }
+      { usd: 0, anniversaryLockCAD: 0, tdModelCAD: 0, rollingAverageCAD: 0, currentRateCAD: 0 }
     );
   }, [rows]);
 
@@ -191,18 +199,20 @@ export default function AggregatedTable({
             <tr style={{ borderBottom: "2px solid #ccc", textAlign: "right" }}>
               <th style={{ textAlign: "left", padding: "8px 12px" }}>Period</th>
               <th style={{ padding: "8px 12px" }}>USD Total</th>
-              <th style={{ padding: "8px 12px", color: "#8884d8" }}>Anniversary Lock (CAD)</th>
-              <th style={{ padding: "8px 12px", color: "#82ca9d" }}>Rolling Avg (CAD)</th>
-              <th style={{ padding: "8px 12px", color: "#ff7300" }}>Current Rate (CAD)</th>
+              <th style={{ padding: "8px 12px", color: "rgb(117, 254, 4)" }}>TD Model (CAD)</th>
+              <th style={{ padding: "8px 12px", color: "#2563eb" }}>Avg Rate Locked (CAD)</th>
+              <th style={{ padding: "8px 12px", color: "#16a34a" }}>Rolling Avg (CAD)</th>
+              <th style={{ padding: "8px 12px", color: "#dc2626" }}>Current Rate (CAD)</th>
               <th style={{ padding: "8px 12px" }}>Max − Min Spread</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => {
-              const vals = [row.anniversaryLockCAD, row.rollingAverageCAD, row.currentRateCAD];
+              const vals = [row.anniversaryLockCAD, row.tdModelCAD, row.rollingAverageCAD, row.currentRateCAD];
               const spread = Math.max(...vals) - Math.min(...vals);
-              const rollingDiff = formatDiff(row.rollingAverageCAD - row.anniversaryLockCAD);
-              const currentDiff = formatDiff(row.currentRateCAD - row.anniversaryLockCAD);
+              const avgDiff = formatDiff(row.anniversaryLockCAD - row.tdModelCAD);
+              const rollingDiff = formatDiff(row.rollingAverageCAD - row.tdModelCAD);
+              const currentDiff = formatDiff(row.currentRateCAD - row.tdModelCAD);
               return (
                 <tr
                   key={row.sortKey}
@@ -213,7 +223,10 @@ export default function AggregatedTable({
                     {formatUSD(row.usd)}
                   </td>
                   <td style={{ padding: "6px 12px", textAlign: "right" }}>
-                    {formatCurrency(row.anniversaryLockCAD)}
+                    {formatCurrency(row.tdModelCAD)}
+                  </td>
+                  <td style={{ padding: "6px 12px", textAlign: "right", color: avgDiff.color }}>
+                    {avgDiff.text}
                   </td>
                   <td style={{ padding: "6px 12px", textAlign: "right", color: rollingDiff.color }}>
                     {rollingDiff.text}
@@ -230,16 +243,20 @@ export default function AggregatedTable({
           </tbody>
           <tfoot>
             {(() => {
-              const rollingDiff = formatDiff(totals.rollingAverageCAD - totals.anniversaryLockCAD);
-              const currentDiff = formatDiff(totals.currentRateCAD - totals.anniversaryLockCAD);
+              const avgDiff = formatDiff(totals.anniversaryLockCAD - totals.tdModelCAD);
+              const rollingDiff = formatDiff(totals.rollingAverageCAD - totals.tdModelCAD);
+              const currentDiff = formatDiff(totals.currentRateCAD - totals.tdModelCAD);
               return (
                 <tr style={{ borderTop: "2px solid #333", fontWeight: 700 }}>
                   <td style={{ padding: "8px 12px" }}>Grand Total</td>
                   <td style={{ padding: "8px 12px", textAlign: "right" }}>
                     {formatUSD(totals.usd)}
                   </td>
-                  <td style={{ padding: "8px 12px", textAlign: "right", color: "#8884d8" }}>
-                    {formatCurrency(totals.anniversaryLockCAD)}
+                  <td style={{ padding: "8px 12px", textAlign: "right", color: "rgb(117, 254, 4)" }}>
+                    {formatCurrency(totals.tdModelCAD)}
+                  </td>
+                  <td style={{ padding: "8px 12px", textAlign: "right", color: avgDiff.color, fontWeight: 700 }}>
+                    {avgDiff.text}
                   </td>
                   <td style={{ padding: "8px 12px", textAlign: "right", color: rollingDiff.color, fontWeight: 700 }}>
                     {rollingDiff.text}
@@ -249,8 +266,8 @@ export default function AggregatedTable({
                   </td>
                   <td style={{ padding: "8px 12px", textAlign: "right", color: "#666" }}>
                     {formatCurrency(
-                      Math.max(totals.anniversaryLockCAD, totals.rollingAverageCAD, totals.currentRateCAD) -
-                      Math.min(totals.anniversaryLockCAD, totals.rollingAverageCAD, totals.currentRateCAD)
+                      Math.max(totals.anniversaryLockCAD, totals.tdModelCAD, totals.rollingAverageCAD, totals.currentRateCAD) -
+                      Math.min(totals.anniversaryLockCAD, totals.tdModelCAD, totals.rollingAverageCAD, totals.currentRateCAD)
                     )}
                   </td>
                 </tr>
