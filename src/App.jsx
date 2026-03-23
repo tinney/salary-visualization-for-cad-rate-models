@@ -10,6 +10,7 @@ import SalaryChart from './components/SalaryChart.tsx';
 import SummaryStatistics from './components/SummaryStatistics.tsx';
 import AggregatedTable from './components/AggregatedTable.tsx';
 import CurrencyRatesTable from './components/CurrencyRatesTable.tsx';
+import MonthlyRatesChart from './components/MonthlyRatesChart.tsx';
 import { computeAllModels } from './utils/computeAllModels.ts';
 import { getAllRates, setRate as setRateInData, resetRates as resetRatesInData } from './utils/rateData.ts';
 import { setRateInModels, resetRatesInModels } from './utils/rateModels.ts';
@@ -116,6 +117,11 @@ export default function App() {
           rollingAverage={rollingAveragePayrolls}
           currentRate={currentRatePayrolls}
         />
+      </div>
+
+      <div style={{ padding: 24, background: '#fafafa', borderRadius: 8, marginTop: 24 }}>
+        <h2 style={{ marginTop: 0 }}>Monthly USD/CAD Exchange Rate</h2>
+        <MonthlyRatesChart rates={currentRates} startDate={startDate} />
       </div>
 
       <div style={{ padding: 24, background: '#fafafa', borderRadius: 8, marginTop: 24 }}>
