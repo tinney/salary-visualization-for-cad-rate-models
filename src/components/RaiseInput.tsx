@@ -1,9 +1,8 @@
 import React, { useCallback } from "react";
+import "./InputSection.css";
 
 interface RaiseInputProps {
-  /** Annual raise percentage (e.g. 3 means 3%) */
   raisePercent: number;
-  /** Callback when the raise percentage changes */
   onChange: (raisePercent: number) => void;
 }
 
@@ -11,11 +10,11 @@ const MIN_RAISE = 0;
 const MAX_RAISE = 20;
 const STEP = 0.5;
 
-/**
- * Interactive control for adjusting the annual USD raise percentage.
- * Provides both a range slider and a numeric input for precision.
- * Default value is 3%.
- */
+function sliderBackground(value: number, min: number, max: number): string {
+  const pct = ((value - min) / (max - min)) * 100;
+  return `linear-gradient(to right, #2563EB ${pct}%, #E4E4E7 ${pct}%)`;
+}
+
 export default function RaiseInput({ raisePercent, onChange }: RaiseInputProps) {
   const handleSliderChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,25 +34,15 @@ export default function RaiseInput({ raisePercent, onChange }: RaiseInputProps) 
   );
 
   return (
-    <div className="raise-input" style={{ marginBottom: "1rem" }}>
-      <label
-        htmlFor="raise-percent"
-        style={{ display: "block", fontWeight: 600, marginBottom: 4 }}
-      >
-        Annual Raise (%)
-      </label>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-        <input
-          id="raise-percent-slider"
-          type="range"
-          min={MIN_RAISE}
-          max={MAX_RAISE}
-          step={STEP}
-          value={raisePercent}
-          onChange={handleSliderChange}
-          style={{ flex: 1 }}
-          aria-label="Annual raise percentage slider"
-        />
+    <div className="input-card">
+      <div className="input-card__label">
+        <svg className="input-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+          <polyline points="16 7 22 7 22 13" />
+        </svg>
+        <span className="input-card__label-text">Annual Raise (%)</span>
+      </div>
+      <div className="input-card__field">
         <input
           id="raise-percent"
           type="number"
@@ -62,16 +51,24 @@ export default function RaiseInput({ raisePercent, onChange }: RaiseInputProps) 
           step={STEP}
           value={raisePercent}
           onChange={handleNumberChange}
-          style={{ width: 70, textAlign: "right", padding: "4px 8px" }}
           aria-label="Annual raise percentage"
         />
-        <span>%</span>
+        <span className="input-card__unit">%</span>
       </div>
-      <div
-        style={{ fontSize: "0.8rem", color: "#666", marginTop: 4 }}
-      >
-        Raise applied annually on start-date anniversary ({MIN_RAISE}%–{MAX_RAISE}%)
-      </div>
+      <input
+        type="range"
+        className="input-card__slider"
+        min={MIN_RAISE}
+        max={MAX_RAISE}
+        step={STEP}
+        value={raisePercent}
+        onChange={handleSliderChange}
+        style={{ background: sliderBackground(raisePercent, MIN_RAISE, MAX_RAISE) }}
+        aria-label="Annual raise percentage slider"
+      />
+      <span className="input-card__hint">
+        Raise applied annually on start-date anniversary ({MIN_RAISE}%&ndash;{MAX_RAISE}%)
+      </span>
     </div>
   );
 }

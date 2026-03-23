@@ -1,9 +1,8 @@
 import React, { useCallback } from "react";
+import "./InputSection.css";
 
 interface AveragingWindowInputProps {
-  /** Rate averaging window in months */
   windowMonths: number;
-  /** Callback when the window size changes */
   onChange: (windowMonths: number) => void;
 }
 
@@ -11,14 +10,11 @@ const MIN_WINDOW = 1;
 const MAX_WINDOW = 24;
 const STEP = 1;
 
-/**
- * Interactive control for adjusting the rate averaging window in months.
- * Provides both a range slider and a numeric input.
- * Default value is 4 months.
- *
- * The averaging window determines how many prior months of USD/CAD exchange
- * rates are averaged together in the rolling-average rate model.
- */
+function sliderBackground(value: number, min: number, max: number): string {
+  const pct = ((value - min) / (max - min)) * 100;
+  return `linear-gradient(to right, #2563EB ${pct}%, #E4E4E7 ${pct}%)`;
+}
+
 export default function AveragingWindowInput({
   windowMonths,
   onChange,
@@ -41,25 +37,16 @@ export default function AveragingWindowInput({
   );
 
   return (
-    <div className="control-group">
-      <label
-        htmlFor="averaging-window"
-        style={{ display: "block", fontWeight: 600, marginBottom: 4 }}
-      >
-        Rate Averaging Window (months)
-      </label>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-        <input
-          id="averaging-window-slider"
-          type="range"
-          min={MIN_WINDOW}
-          max={MAX_WINDOW}
-          step={STEP}
-          value={windowMonths}
-          onChange={handleSliderChange}
-          style={{ flex: 1 }}
-          aria-label="Rate averaging window slider"
-        />
+    <div className="input-card">
+      <div className="input-card__label">
+        <svg className="input-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="10" y1="2" x2="14" y2="2" />
+          <line x1="12" y1="14" x2="12" y2="10" />
+          <circle cx="12" cy="14" r="8" />
+        </svg>
+        <span className="input-card__label-text">Rate Averaging Window</span>
+      </div>
+      <div className="input-card__field">
         <input
           id="averaging-window"
           type="number"
@@ -68,14 +55,23 @@ export default function AveragingWindowInput({
           step={STEP}
           value={windowMonths}
           onChange={handleNumberChange}
-          style={{ width: 70, textAlign: "right", padding: "4px 8px" }}
           aria-label="Rate averaging window in months"
         />
-        <span>mo</span>
+        <span className="input-card__unit">months</span>
       </div>
-      <span className="control-hint">
-        Number of prior months averaged for the rolling-average rate model (
-        {MIN_WINDOW}–{MAX_WINDOW})
+      <input
+        type="range"
+        className="input-card__slider"
+        min={MIN_WINDOW}
+        max={MAX_WINDOW}
+        step={STEP}
+        value={windowMonths}
+        onChange={handleSliderChange}
+        style={{ background: sliderBackground(windowMonths, MIN_WINDOW, MAX_WINDOW) }}
+        aria-label="Rate averaging window slider"
+      />
+      <span className="input-card__hint">
+        Number of prior months averaged for the rolling-average rate model ({MIN_WINDOW}&ndash;{MAX_WINDOW})
       </span>
     </div>
   );

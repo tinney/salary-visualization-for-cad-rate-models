@@ -1,0 +1,185 @@
+/* Input Section – matches Pencil design (bDF12) */
+
+.inputs-section {
+  background: #fff;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.inputs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.inputs-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.inputs-title {
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 28px;
+  font-weight: 600;
+  color: #18181B;
+  letter-spacing: -0.5px;
+  margin: 0;
+}
+
+.inputs-subtitle {
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 14px;
+  color: #71717A;
+  margin: 0;
+}
+
+.inputs-divider {
+  width: 100%;
+  height: 1px;
+  background: #E4E4E7;
+  border: none;
+}
+
+.inputs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 700px) {
+  .inputs-grid {
+    grid-template-columns: 1fr;
+  }
+  .inputs-section {
+    padding: 24px;
+  }
+}
+
+/* Input Card */
+.input-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1.5px solid #E4E4E7;
+  background: #fff;
+}
+
+.input-card__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.input-card__icon {
+  width: 16px;
+  height: 16px;
+  color: #2563EB;
+  flex-shrink: 0;
+}
+
+.input-card__label-text {
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #71717A;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* Input field row */
+.input-card__field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 8px;
+  background: #FAFAFA;
+  border: 1px solid #E4E4E7;
+  box-sizing: border-box;
+}
+
+.input-card__field input {
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: #18181B;
+  background: transparent;
+  border: none;
+  outline: none;
+  width: 100%;
+  padding: 0;
+}
+
+.input-card__field input::-webkit-inner-spin-button,
+.input-card__field input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.input-card__field input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.input-card__unit {
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 14px;
+  color: #A1A1AA;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+/* Custom slider */
+.input-card__slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: #E4E4E7;
+  border-radius: 100px;
+  outline: none;
+  cursor: pointer;
+}
+
+.input-card__slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 2px solid #2563EB;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.input-card__slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 2px solid #2563EB;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.input-card__slider::-moz-range-progress {
+  background: #2563EB;
+  height: 6px;
+  border-radius: 100px;
+}
+
+/* Webkit slider fill via background gradient (set dynamically) */
+
+.input-card__hint {
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 12px;
+  color: #A1A1AA;
+  line-height: 1.4;
+}

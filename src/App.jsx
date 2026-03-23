@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import './components/InputSection.css';
 import { DEFAULTS } from './defaults.ts';
 import StartDatePicker from './components/StartDatePicker.tsx';
 import BaseSalaryInput from './components/BaseSalaryInput.tsx';
@@ -62,14 +63,21 @@ export default function App() {
   );
 
   return (
-    <div style={{ fontFamily: 'system-ui, sans-serif', maxWidth: 1200, margin: '0 auto', padding: 24 }}>
-      <h1>USD &rarr; CAD Salary Visualization</h1>
-
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, marginBottom: 32, padding: 16, background: '#f5f5f5', borderRadius: 8 }}>
-        <StartDatePicker value={startDate} onChange={setStartDate} />
-        <BaseSalaryInput value={baseSalary} onChange={setBaseSalary} />
-        <RaiseInput raisePercent={raisePercent} onChange={setRaisePercent} />
-        <AveragingWindowInput windowMonths={averagingWindow} onChange={setAveragingWindow} />
+    <div style={{ fontFamily: 'Inter, system-ui, sans-serif', maxWidth: 1200, margin: '0 auto', padding: 24 }}>
+      <div className="inputs-section" style={{ marginBottom: 32, borderRadius: 8 }}>
+        <div className="inputs-header">
+          <div className="inputs-title-block">
+            <h1 className="inputs-title">USD &rarr; CAD Salary Visualization</h1>
+            <p className="inputs-subtitle">Configure your salary parameters below</p>
+          </div>
+        </div>
+        <hr className="inputs-divider" />
+        <div className="inputs-grid">
+          <StartDatePicker value={startDate} onChange={setStartDate} />
+          <RaiseInput raisePercent={raisePercent} onChange={setRaisePercent} />
+          <BaseSalaryInput value={baseSalary} onChange={setBaseSalary} />
+          <AveragingWindowInput windowMonths={averagingWindow} onChange={setAveragingWindow} />
+        </div>
       </div>
 
       <div style={{ padding: 24, background: '#fafafa', borderRadius: 8 }}>
