@@ -11,6 +11,7 @@ interface SummaryStatisticsProps {
   raisePercent: number;
   startDate: string;
   averagingWindow: number;
+  lockPeriodMonths: number;
 }
 
 const fmt = (n: number) =>
@@ -26,10 +27,11 @@ export default function SummaryStatistics({
   raisePercent,
   startDate,
   averagingWindow,
+  lockPeriodMonths,
 }: SummaryStatisticsProps) {
   const { summary } = useMemo(
-    () => computeAllModels(baseSalary, raisePercent, startDate, averagingWindow),
-    [baseSalary, raisePercent, startDate, averagingWindow]
+    () => computeAllModels(baseSalary, raisePercent, startDate, averagingWindow, undefined, lockPeriodMonths),
+    [baseSalary, raisePercent, startDate, averagingWindow, lockPeriodMonths]
   );
 
   const models = [

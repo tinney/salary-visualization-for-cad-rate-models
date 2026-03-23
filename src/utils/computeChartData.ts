@@ -43,6 +43,7 @@ export interface ComputeChartDataParams {
   raisePercent: number;
   startDate: string;      // "YYYY-MM-DD"
   averagingWindow: number; // months for rolling avg & anniversary lock
+  lockPeriodMonths: number; // how often the locked rate resets (1–12)
 }
 
 /**
@@ -51,7 +52,7 @@ export interface ComputeChartDataParams {
  * End date is today's date, capped at the last month with real rate data.
  */
 export function computeChartData(params: ComputeChartDataParams): ChartDataPoint[] {
-  const { baseSalary, raisePercent, startDate, averagingWindow } = params;
+  const { baseSalary, raisePercent, startDate, averagingWindow, lockPeriodMonths } = params;
 
   // End at present date
   const now = new Date();
@@ -61,10 +62,10 @@ export function computeChartData(params: ComputeChartDataParams): ChartDataPoint
   if (payrolls.length === 0) return [];
 
   // Model 1 – Avg Rate Locked
-  const model1 = computeAnniversaryLock(payrolls, startDate, averagingWindow);
+  const model1 = computeAnniversaryLock(payrolls, startDate, averagingWindow, lockPeriodMonths);
 
-  // TD Model – Anniversary Lock with fixed 4-month window
-  const tdModel = computeAnniversaryLock(payrolls, startDate, 4);
+  // TD Model – Anniversary Lock with fixed 4-month window, 12-month lock period
+  const tdModel = computeAnniversaryLock(payrolls, startDate, 4, 12);
 
   // Model 3 – Current Rate (has its own skip logic, but we'll compute inline too)
   const model3 = computeCurrentRate(payrolls);

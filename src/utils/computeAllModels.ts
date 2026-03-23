@@ -56,7 +56,8 @@ export function computeAllModels(
   raisePercent: number,
   startDate: string,
   averagingWindow: number,
-  endDate?: string
+  endDate?: string,
+  lockPeriodMonths: number = 12
 ): AllModelResults {
   // Default end date to today
   const end = endDate || new Date().toISOString().slice(0, 10);
@@ -81,12 +82,12 @@ export function computeAllModels(
     };
   }
 
-  // Model 1: Avg Rate Locked (Anniversary Lock with configurable averaging window)
-  const alResults = computeAnniversaryLock(payrolls, startDate, averagingWindow);
+  // Model 1: Avg Rate Locked (Anniversary Lock with configurable averaging window & lock period)
+  const alResults = computeAnniversaryLock(payrolls, startDate, averagingWindow, lockPeriodMonths);
   const alByDate = new Map(alResults.map((r) => [r.date, r]));
 
-  // TD Model: Anniversary Lock with fixed 4-month window (no averaging window input)
-  const tdResults = computeAnniversaryLock(payrolls, startDate, 4);
+  // TD Model: Anniversary Lock with fixed 4-month window, 12-month lock period
+  const tdResults = computeAnniversaryLock(payrolls, startDate, 4, 12);
   const tdByDate = new Map(tdResults.map((r) => [r.date, r]));
 
   // Model 3: Current Rate
