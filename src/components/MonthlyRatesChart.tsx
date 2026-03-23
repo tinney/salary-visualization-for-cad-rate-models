@@ -54,7 +54,7 @@ function YearOverlayTooltip({ active, payload, label }: any) {
       <div style={{ fontWeight: 600, marginBottom: 4 }}>{label}</div>
       {payload.map((entry: any) => (
         <div key={entry.name} style={{ color: entry.color, marginTop: 2 }}>
-          {entry.name}: {formatRate(entry.value)}
+          {entry.name}: {entry.value >= 0 ? "+" : ""}{formatRate(entry.value)}
         </div>
       ))}
     </div>
@@ -77,13 +77,23 @@ export default function MonthlyRatesChart({ rates, startDate }: MonthlyRatesChar
 
     const years = Array.from(byYear.keys()).sort();
 
-    // Build data points for each month (Jan-Dec)
+    // Get January rate for each year as baseline
+    const janRates = new Map<string, number>();
+    for (const year of years) {
+      const monthRates = byYear.get(year)!;
+      if (monthRates.has(0)) {
+        janRates.set(year, monthRates.get(0)!);
+      }
+    }
+
+    // Build data points normalized to Jan = 0
     const data: OverlayPoint[] = MONTH_LABELS.map((label, i) => {
       const point: OverlayPoint = { monthIndex: i, monthLabel: label };
       for (const year of years) {
         const monthRates = byYear.get(year)!;
-        if (monthRates.has(i)) {
-          point[year] = monthRates.get(i)!;
+        const janRate = janRates.get(year);
+        if (monthRates.has(i) && janRate !== undefined) {
+          point[year] = monthRates.get(i)! - janRate;
         }
       }
       return point;
@@ -130,9 +140,9 @@ export default function MonthlyRatesChart({ rates, startDate }: MonthlyRatesChar
         />
         <YAxis
           domain={domain}
-          tickFormatter={(v: number) => v.toFixed(2)}
+          tickFormatter={(v: number) => `${v >= 0 ? "+" : ""}${v.toFixed(3)}`}
           tick={{ fontSize: 12 }}
-          width={60}
+          width={70}
         />
         <Tooltip content={<YearOverlayTooltip />} />
         <Legend />
