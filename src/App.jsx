@@ -91,6 +91,45 @@ export default function App() {
         </div>
       </div>
 
+      <div style={{ padding: 24, background: '#f0f4ff', borderRadius: 8, marginBottom: 24, border: '1px solid #d0d9f0' }}>
+        <h2 style={{ marginTop: 0, marginBottom: 12, fontSize: 18, color: '#1e293b' }}>How the Models Work</h2>
+        <p style={{ margin: '0 0 16px', fontSize: 14, color: '#475569', lineHeight: 1.6 }}>
+          This tool compares four different approaches to converting a USD salary into CAD using Bank of Canada monthly exchange rates.
+          Each model applies a different strategy for determining which rate is used on each pay date.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
+          <div style={{ background: 'white', borderRadius: 8, padding: 16, borderLeft: '4px solid #2563eb' }}>
+            <h3 style={{ margin: '0 0 6px', fontSize: 15, color: '#2563eb' }}>Avg Rate Locked</h3>
+            <p style={{ margin: 0, fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
+              Locks the exchange rate at each anniversary (or lock period boundary) of your start date.
+              The locked rate is the trailing average over the configured averaging window ending at that boundary.
+              The rate stays fixed until the next lock period begins.
+            </p>
+          </div>
+          <div style={{ background: 'white', borderRadius: 8, padding: 16, borderLeft: '4px solid rgb(117, 254, 4)' }}>
+            <h3 style={{ margin: '0 0 6px', fontSize: 15, color: '#16a34a' }}>TD Model</h3>
+            <p style={{ margin: 0, fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
+              A fixed reference baseline using the same anniversary lock approach, but always with a 4-month averaging window and 12-month lock period regardless of your slider settings.
+              Used as the comparison benchmark for the other models.
+            </p>
+          </div>
+          <div style={{ background: 'white', borderRadius: 8, padding: 16, borderLeft: '4px solid #16a34a' }}>
+            <h3 style={{ margin: '0 0 6px', fontSize: 15, color: '#16a34a' }}>Rolling Average</h3>
+            <p style={{ margin: 0, fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
+              For each pay date, uses the average exchange rate over the preceding N months (set by the averaging window slider).
+              The rate updates every month as the window slides forward, providing gradual smoothing.
+            </p>
+          </div>
+          <div style={{ background: 'white', borderRadius: 8, padding: 16, borderLeft: '4px solid #dc2626' }}>
+            <h3 style={{ margin: '0 0 6px', fontSize: 15, color: '#dc2626' }}>Current Rate</h3>
+            <p style={{ margin: 0, fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
+              Uses the actual Bank of Canada exchange rate for that specific month with no averaging or locking.
+              This is the most volatile model and shows what you'd receive with real-time conversion.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div style={{ padding: 24, background: '#fafafa', borderRadius: 8 }}>
         <h2 style={{ marginTop: 0 }}>CAD Salary Over Time</h2>
         <SalaryChart
