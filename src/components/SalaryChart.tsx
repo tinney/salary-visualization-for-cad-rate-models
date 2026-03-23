@@ -29,6 +29,15 @@ const MODEL_COLORS = {
   current: "#dc2626",     // red
 };
 
+const MODEL_LABELS = {
+  anniversary: "Avg Rate Locked",
+  tdModel: "TD Model",
+  rolling: "Rolling Average",
+  current: "Current Rate",
+} as const;
+
+type ModelKey = keyof typeof MODEL_COLORS;
+
 function formatCAD(value: number): string {
   return new Intl.NumberFormat("en-CA", {
     style: "currency",
@@ -114,6 +123,15 @@ export default function SalaryChart({
   lockPeriodMonths,
 }: SalaryChartProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("per-payroll");
+  const [enabledModels, setEnabledModels] = useState<Record<ModelKey, boolean>>({
+    anniversary: true,
+    tdModel: true,
+    rolling: true,
+    current: true,
+  });
+
+  const toggleModel = (key: ModelKey) =>
+    setEnabledModels((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const data = useMemo(
     () =>
@@ -123,12 +141,19 @@ export default function SalaryChart({
 
   const yearTicks = useMemo(() => getYearTicks(data), [data]);
 
-  // Compute a tight y-axis domain for per-payroll view
+  // Compute a tight y-axis domain for per-payroll view (only enabled models)
   const perPayrollDomain = useMemo(() => {
+    const accessors: [ModelKey, (d: ChartDataPoint) => number | null][] = [
+      ["anniversary", (d) => d.anniversaryCAD],
+      ["tdModel", (d) => d.tdModelCAD],
+      ["rolling", (d) => d.rollingCAD],
+      ["current", (d) => d.currentCAD],
+    ];
     const vals = data.flatMap((d) =>
-      [d.anniversaryCAD, d.tdModelCAD, d.rollingCAD, d.currentCAD].filter(
-        (v): v is number => v !== null
-      )
+      accessors
+        .filter(([key]) => enabledModels[key])
+        .map(([, fn]) => fn(d))
+        .filter((v): v is number => v !== null)
     );
     if (vals.length === 0) return [0, 1] as [number, number];
     const min = Math.min(...vals);
@@ -138,7 +163,7 @@ export default function SalaryChart({
       Math.floor((min - padding) / 100) * 100,
       Math.ceil((max + padding) / 100) * 100,
     ] as [number, number];
-  }, [data]);
+  }, [data, enabledModels]);
 
   if (data.length === 0) {
     return (
@@ -157,36 +182,71 @@ export default function SalaryChart({
 
   return (
     <div>
-      {/* View toggle */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        <button
-          onClick={() => setViewMode("per-payroll")}
-          style={{
-            padding: "6px 16px",
-            borderRadius: 6,
-            border: "1px solid #ccc",
-            background: viewMode === "per-payroll" ? "#2563eb" : "white",
-            color: viewMode === "per-payroll" ? "white" : "#333",
-            cursor: "pointer",
-            fontWeight: viewMode === "per-payroll" ? 600 : 400,
-          }}
-        >
-          Per Payroll
-        </button>
-        <button
-          onClick={() => setViewMode("cumulative")}
-          style={{
-            padding: "6px 16px",
-            borderRadius: 6,
-            border: "1px solid #ccc",
-            background: viewMode === "cumulative" ? "#2563eb" : "white",
-            color: viewMode === "cumulative" ? "white" : "#333",
-            cursor: "pointer",
-            fontWeight: viewMode === "cumulative" ? 600 : 400,
-          }}
-        >
-          Cumulative Diff
-        </button>
+      {/* View toggle & model toggles */}
+      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={() => setViewMode("per-payroll")}
+            style={{
+              padding: "6px 16px",
+              borderRadius: 6,
+              border: "1px solid #ccc",
+              background: viewMode === "per-payroll" ? "#2563eb" : "white",
+              color: viewMode === "per-payroll" ? "white" : "#333",
+              cursor: "pointer",
+              fontWeight: viewMode === "per-payroll" ? 600 : 400,
+            }}
+          >
+            Per Payroll
+          </button>
+          <button
+            onClick={() => setViewMode("cumulative")}
+            style={{
+              padding: "6px 16px",
+              borderRadius: 6,
+              border: "1px solid #ccc",
+              background: viewMode === "cumulative" ? "#2563eb" : "white",
+              color: viewMode === "cumulative" ? "white" : "#333",
+              cursor: "pointer",
+              fontWeight: viewMode === "cumulative" ? 600 : 400,
+            }}
+          >
+            Cumulative Diff
+          </button>
+        </div>
+
+        <div style={{ display: "flex", gap: 12, alignItems: "center", marginLeft: "auto" }}>
+          {(Object.keys(MODEL_LABELS) as ModelKey[]).map((key) => (
+            <label
+              key={key}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                cursor: "pointer",
+                fontSize: 13,
+                opacity: enabledModels[key] ? 1 : 0.4,
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={enabledModels[key]}
+                onChange={() => toggleModel(key)}
+                style={{ accentColor: MODEL_COLORS[key] }}
+              />
+              <span
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: 2,
+                  backgroundColor: MODEL_COLORS[key],
+                  display: "inline-block",
+                }}
+              />
+              {MODEL_LABELS[key]}
+            </label>
+          ))}
+        </div>
       </div>
 
       <ResponsiveContainer width="100%" height={450}>
@@ -213,43 +273,51 @@ export default function SalaryChart({
           )}
           <Tooltip content={<ChartTooltip isCumulative={isCumulative} />} />
           <Legend />
-          <Line
-            type="monotone"
-            dataKey={tdModelKey}
-            name={isCumulative ? "TD Model (baseline)" : "TD Model"}
-            stroke={MODEL_COLORS.tdModel}
-            dot={false}
-            strokeWidth={isCumulative ? 1 : 2}
-            strokeDasharray={isCumulative ? "4 4" : undefined}
-            connectNulls
-          />
-          <Line
-            type="monotone"
-            dataKey={anniversaryKey}
-            name="Avg Rate Locked"
-            stroke={MODEL_COLORS.anniversary}
-            dot={false}
-            strokeWidth={2}
-            connectNulls
-          />
-          <Line
-            type="monotone"
-            dataKey={rollingKey}
-            name="Rolling Average"
-            stroke={MODEL_COLORS.rolling}
-            dot={false}
-            strokeWidth={2}
-            connectNulls
-          />
-          <Line
-            type="monotone"
-            dataKey={currentKey}
-            name="Current Rate"
-            stroke={MODEL_COLORS.current}
-            dot={false}
-            strokeWidth={2}
-            connectNulls
-          />
+          {enabledModels.tdModel && (
+            <Line
+              type="monotone"
+              dataKey={tdModelKey}
+              name={isCumulative ? "TD Model (baseline)" : "TD Model"}
+              stroke={MODEL_COLORS.tdModel}
+              dot={false}
+              strokeWidth={isCumulative ? 1 : 2}
+              strokeDasharray={isCumulative ? "4 4" : undefined}
+              connectNulls
+            />
+          )}
+          {enabledModels.anniversary && (
+            <Line
+              type="monotone"
+              dataKey={anniversaryKey}
+              name="Avg Rate Locked"
+              stroke={MODEL_COLORS.anniversary}
+              dot={false}
+              strokeWidth={2}
+              connectNulls
+            />
+          )}
+          {enabledModels.rolling && (
+            <Line
+              type="monotone"
+              dataKey={rollingKey}
+              name="Rolling Average"
+              stroke={MODEL_COLORS.rolling}
+              dot={false}
+              strokeWidth={2}
+              connectNulls
+            />
+          )}
+          {enabledModels.current && (
+            <Line
+              type="monotone"
+              dataKey={currentKey}
+              name="Current Rate"
+              stroke={MODEL_COLORS.current}
+              dot={false}
+              strokeWidth={2}
+              connectNulls
+            />
+          )}
         </LineChart>
       </ResponsiveContainer>
     </div>
