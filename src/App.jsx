@@ -48,6 +48,13 @@ export default function App() {
     [payrolls]
   );
 
+  const tdModelPayrolls = useMemo(
+    () => payrolls
+      .filter((p) => p.tdModelCAD !== undefined)
+      .map((p) => ({ date: p.date, payUSD: p.payUSD, payCAD: p.tdModelCAD })),
+    [payrolls]
+  );
+
   const rollingAveragePayrolls = useMemo(
     () => payrolls
       .filter((p) => p.rollingAverageCAD !== undefined)
@@ -100,6 +107,7 @@ export default function App() {
       <div style={{ padding: 24, background: '#fafafa', borderRadius: 8, marginTop: 24 }}>
         <AggregatedTable
           anniversaryLock={anniversaryLockPayrolls}
+          tdModel={tdModelPayrolls}
           rollingAverage={rollingAveragePayrolls}
           currentRate={currentRatePayrolls}
         />

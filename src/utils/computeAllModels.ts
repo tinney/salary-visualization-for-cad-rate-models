@@ -15,10 +15,12 @@ export interface UnifiedPayroll {
   payUSD: number;
   /** CAD amounts per model (may be undefined if rate data missing) */
   anniversaryLockCAD: number | undefined;
+  tdModelCAD: number | undefined;
   rollingAverageCAD: number | undefined;
   currentRateCAD: number | undefined;
   /** Rates used */
   anniversaryLockRate: number | undefined;
+  tdModelRate: number | undefined;
   rollingAverageRate: number | undefined;
   currentRate: number | undefined;
 }
@@ -31,12 +33,14 @@ export interface ModelSummary {
 
 export interface SummaryStats {
   anniversaryLock: ModelSummary;
+  tdModel: ModelSummary;
   rollingAverage: ModelSummary;
   currentRate: ModelSummary;
   /** Differences: positive means first model earned more CAD */
   diffAnniversaryVsRolling: number;
   diffAnniversaryVsCurrent: number;
   diffRollingVsCurrent: number;
+  diffTdModelVsAnniversaryLock: number;
 }
 
 export interface AllModelResults {
@@ -66,18 +70,24 @@ export function computeAllModels(
       payrolls: [],
       summary: {
         anniversaryLock: emptySummary,
+        tdModel: emptySummary,
         rollingAverage: emptySummary,
         currentRate: emptySummary,
         diffAnniversaryVsRolling: 0,
         diffAnniversaryVsCurrent: 0,
         diffRollingVsCurrent: 0,
+        diffTdModelVsAnniversaryLock: 0,
       },
     };
   }
 
-  // Model 1: Anniversary Lock
+  // Model 1: Avg Rate Locked (Anniversary Lock with configurable averaging window)
   const alResults = computeAnniversaryLock(payrolls, startDate, averagingWindow);
   const alByDate = new Map(alResults.map((r) => [r.date, r]));
+
+  // TD Model: Anniversary Lock with fixed 4-month window (no averaging window input)
+  const tdResults = computeAnniversaryLock(payrolls, startDate, 4);
+  const tdByDate = new Map(tdResults.map((r) => [r.date, r]));
 
   // Model 3: Current Rate
   const crResults = computeCurrentRate(payrolls);
@@ -95,6 +105,7 @@ export function computeAllModels(
   // Build unified payroll array
   const unified: UnifiedPayroll[] = payrolls.map((p) => {
     const al = alByDate.get(p.date);
+    const td = tdByDate.get(p.date);
     const cr = crByDate.get(p.date);
     const ra = raByDate.get(p.date);
 
@@ -102,9 +113,11 @@ export function computeAllModels(
       date: p.date,
       payUSD: p.payAmountUSD,
       anniversaryLockCAD: al?.payAmountCAD,
+      tdModelCAD: td?.payAmountCAD,
       rollingAverageCAD: ra?.payCAD,
       currentRateCAD: cr?.payCAD,
       anniversaryLockRate: al?.lockedRate,
+      tdModelRate: td?.lockedRate,
       rollingAverageRate: ra?.rate,
       currentRate: cr?.rate,
     };
@@ -112,6 +125,7 @@ export function computeAllModels(
 
   // Compute summaries
   const anniversaryLock = computeModelSummary(unified, "anniversaryLockCAD");
+  const tdModel = computeModelSummary(unified, "tdModelCAD");
   const rollingAverage = computeModelSummary(unified, "rollingAverageCAD");
   const currentRate = computeModelSummary(unified, "currentRateCAD");
 
@@ -119,18 +133,20 @@ export function computeAllModels(
     payrolls: unified,
     summary: {
       anniversaryLock,
+      tdModel,
       rollingAverage,
       currentRate,
       diffAnniversaryVsRolling: anniversaryLock.totalCAD - rollingAverage.totalCAD,
       diffAnniversaryVsCurrent: anniversaryLock.totalCAD - currentRate.totalCAD,
       diffRollingVsCurrent: rollingAverage.totalCAD - currentRate.totalCAD,
+      diffTdModelVsAnniversaryLock: tdModel.totalCAD - anniversaryLock.totalCAD,
     },
   };
 }
 
 function computeModelSummary(
   payrolls: UnifiedPayroll[],
-  cadField: "anniversaryLockCAD" | "rollingAverageCAD" | "currentRateCAD"
+  cadField: "anniversaryLockCAD" | "tdModelCAD" | "rollingAverageCAD" | "currentRateCAD"
 ): ModelSummary {
   let totalCAD = 0;
   let totalUSD = 0;
