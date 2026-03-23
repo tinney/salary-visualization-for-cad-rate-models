@@ -120,7 +120,7 @@ export default function App() {
       </div>
 
       <div style={{ padding: 24, background: '#fafafa', borderRadius: 8, marginTop: 24 }}>
-        <h2 style={{ marginTop: 0 }}>Monthly USD/CAD Exchange Rate</h2>
+        <h2 style={{ marginTop: 0 }}>USD/CAD Rate Change from January (Normalized)</h2>
         <MonthlyRatesChart rates={currentRates} startDate={startDate} />
       </div>
 
