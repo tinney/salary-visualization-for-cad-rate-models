@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from "react";
+import "./InputSection.css";
 
 interface BaseSalaryInputProps {
   value: number;
@@ -27,6 +28,11 @@ function parseCurrencyInput(raw: string): number | null {
   return Number.isFinite(parsed) ? Math.round(parsed) : null;
 }
 
+function sliderBackground(value: number, min: number, max: number): string {
+  const pct = ((value - min) / (max - min)) * 100;
+  return `linear-gradient(to right, #2563EB ${pct}%, #E4E4E7 ${pct}%)`;
+}
+
 export default function BaseSalaryInput({
   value,
   onChange,
@@ -50,7 +56,6 @@ export default function BaseSalaryInput({
         onChange(clamped);
         setTextValue(formatCurrency(clamped));
       } else {
-        // Reset to current value on invalid input
         setTextValue(formatCurrency(value));
       }
     },
@@ -86,13 +91,18 @@ export default function BaseSalaryInput({
   };
 
   return (
-    <div className="control-group">
-      <label htmlFor="base-salary">Base Salary (USD)</label>
-      <div className="salary-input-row">
+    <div className="input-card">
+      <div className="input-card__label">
+        <svg className="input-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="1" x2="12" y2="23" />
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
+        <span className="input-card__label-text">Base Salary (USD)</span>
+      </div>
+      <div className="input-card__field">
         <input
           id="base-salary"
           type="text"
-          className="salary-text-input"
           value={isEditing ? textValue : formatCurrency(value)}
           onChange={handleTextChange}
           onFocus={handleTextFocus}
@@ -100,18 +110,19 @@ export default function BaseSalaryInput({
           onKeyDown={handleTextKeyDown}
           aria-label="Base annual salary in USD"
         />
-        <input
-          type="range"
-          className="salary-slider"
-          min={min}
-          max={max}
-          step={step}
-          value={value}
-          onChange={handleSliderChange}
-          aria-label="Base salary slider"
-        />
       </div>
-      <span className="control-hint">
+      <input
+        type="range"
+        className="input-card__slider"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={handleSliderChange}
+        style={{ background: sliderBackground(value, min, max) }}
+        aria-label="Base salary slider"
+      />
+      <span className="input-card__hint">
         Annual base salary before raises ({formatCurrency(min)} &ndash;{" "}
         {formatCurrency(max)})
       </span>
